@@ -1,0 +1,13 @@
+# ignore __pycache__ directories
+global-exclude __pycache__
+__pycache__
+*/__pycache__/*
+
+# ignore .pyc files
+global-exclude *.pyc
+*.pyc
+*/*.pyc
+
+# logs
+logs/*
+
