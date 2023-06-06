@@ -1,4 +1,4 @@
-# Copyright 2022 Google LLC
+ # Copyright 2022 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,6 +19,39 @@ import cv2
 from typing import Optional, Union, Tuple, List, Callable, Dict
 from IPython.display import display
 from tqdm.notebook import tqdm
+from prompt2prompt import AttentionStore, aggregate_attention
+from diffusers.models.cross_attention import CrossAttention
+
+def show_cross_attention(tokenizer, prompts: List[str], attention_store: AttentionStore, res: int, from_where: List[str], select: int = 0):
+    tokens = tokenizer.encode(prompts[select])
+    decoder = tokenizer.decode
+    attention_maps = aggregate_attention(prompts, attention_store, res, from_where, True, select)
+    images = []
+    for i in range(len(tokens)):
+        image = attention_maps[:, :, i]
+        image = 255 * image / image.max()
+        image = image.unsqueeze(-1).expand(*image.shape, 3)
+        image = image.numpy().astype(np.uint8)
+        image = np.array(Image.fromarray(image).resize((256, 256)))
+        image = text_under_image(image, decoder(int(tokens[i])))
+        images.append(image)
+    view_images(np.stack(images, axis=0))
+    
+
+def show_self_attention_comp(tokenizer, prompts: List[str], attention_store: AttentionStore, res: int, from_where: List[str],
+                        max_com=10, select: int = 0):
+    attention_maps = aggregate_attention(prompts, attention_store, res, from_where, False, select).numpy().reshape((res ** 2, res ** 2))
+    u, s, vh = np.linalg.svd(attention_maps - np.mean(attention_maps, axis=1, keepdims=True))
+    images = []
+    for i in range(max_com):
+        image = vh[i].reshape(res, res)
+        image = image - image.min()
+        image = 255 * image / image.max()
+        image = np.repeat(np.expand_dims(image, axis=2), 3, axis=2).astype(np.uint8)
+        image = Image.fromarray(image).resize((256, 256))
+        image = np.array(image)
+        images.append(image)
+    view_images(np.concatenate(images, axis=1))
 
 
 def text_under_image(image: np.ndarray, text: str, text_color: Tuple[int, int, int] = (0, 0, 0)):
@@ -42,7 +75,7 @@ def view_images(images, num_rows=1, offset_ratio=0.02):
     else:
         images = [images]
         num_empty = 0
-
+ 
     empty_images = np.ones(images[0].shape, dtype=np.uint8) * 255
     images = [image.astype(np.uint8) for image in images] + [empty_images] * num_empty
     num_items = len(images)
@@ -93,7 +126,6 @@ def init_latent(latent, model, height, width, generator, batch_size):
     latents = latent.expand(batch_size,  model.unet.in_channels, height // 8, width // 8).to(model.device)
     return latent, latents
 
-from diffusers.models.cross_attention import CrossAttention
 class P2PCrossAttnProcessor:
 
     def __init__(self, controller, place_in_unet):
