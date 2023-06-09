@@ -63,7 +63,7 @@ def text2image_ldm_stable(
 def run_and_display(pipe, prompts, controller, latent=None, run_baseline=False, generator=None, uncond_embeddings=None, verbose=True):
     if run_baseline:
         print("w.o. prompt-to-prompt")
-        images, latent = run_and_display(prompts, EmptyControl(), latent=latent, run_baseline=False, generator=generator)
+        images, latent = run_and_display(pipe, prompts, EmptyControl(), latent=latent, run_baseline=False, generator=generator)
         print("with prompt-to-prompt")
     images, x_t = text2image_ldm_stable(pipe, prompts, controller, latent=latent, num_inference_steps=NUM_DDIM_STEPS, guidance_scale=GUIDANCE_SCALE, generator=generator, uncond_embeddings=uncond_embeddings)
     if verbose:
