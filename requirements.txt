@@ -9,3 +9,7 @@ tensorboard
 Jinja2
 bitsandbytes
 scipy
+ipywidgets
+opencv-python
+torchmetrics
+#apt-get update && apt-get install libgl1
